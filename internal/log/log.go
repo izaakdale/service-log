@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/izaakdale/service-log/api/v1"
+	api "github.com/izaakdale/service-log/api/v1"
 )
 
 type Log struct {

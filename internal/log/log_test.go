@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/izaakdale/service-log/api/v1"
+	api "github.com/izaakdale/service-log/api/v1"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 )
