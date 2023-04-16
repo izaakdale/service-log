@@ -1,2 +1,3 @@
-
+test/model.conf
+test/policy.csv
 test/*.json

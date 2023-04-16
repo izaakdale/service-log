@@ -1,4 +1,10 @@
-CONFIG_PATH=${HOME}/.logservice/
+CONFIG_PATH=${HOME}/.logservice
+
+$(CONFIG_PATH)/model.conf:
+	cp test/model.conf ${CONFIG_PATH}/model.conf
+
+$(CONFIG_PATH)/policy.csv:
+	cp test/policy.csv ${CONFIG_PATH}/policy.csv
 
 .PHONY: gproto
 gproto:
@@ -10,11 +16,16 @@ gproto:
 	--proto_path=.
 
 .PHONY: test
-test:
+test: $(CONFIG_PATH)/policy.csv $(CONFIG_PATH)/model.conf
 	go test -race ./...
 
 .PHONY: init
 init:
+	mkdir -p ${CONFIG_PATH}
+
+.PHONY: clean
+clean:
+	rm -rf ${CONFIG_PATH}
 	mkdir -p ${CONFIG_PATH}
 
 .PHONY: gencert
@@ -29,21 +40,13 @@ gencert:
 	-ca-key=ca-key.pem \
 	-config=test/ca-config.json \
 	-profile=client \
-	test/client-csr.json | cfssljson -bare client
-	mv *.pem *csr ${CONFIG_PATH}
-
-.PHONY: invalidgencert
-invalidgencert:
-	cfssl gencert -initca test/ca-csr.json | cfssljson -bare ca
-	cfssl gencert -initca test/ca-csr-invalid.json | cfssljson -bare ca-invalid
+	-cn="root" \
+	test/client-csr.json | cfssljson -bare root-client
 	cfssl gencert -ca=ca.pem \
 	-ca-key=ca-key.pem \
 	-config=test/ca-config.json \
-	-profile=server \
-	test/server-csr.json | cfssljson -bare server
-	cfssl gencert -ca=ca-invalid.pem \
-	-ca-key=ca-invalid-key.pem \
-	-config=test/ca-config-invalid.json \
 	-profile=client \
-	test/client-csr-invalid.json | cfssljson -bare client
+	-cn="nobody" \
+	test/client-csr.json | cfssljson -bare nobody-client
 	mv *.pem *csr ${CONFIG_PATH}
+	cp model.conf policy.csv ${CONFIG_PATH}
