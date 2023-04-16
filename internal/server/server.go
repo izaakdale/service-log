@@ -11,8 +11,8 @@ type Config struct {
 
 var _ api.LogServer = (*grpcServer)(nil)
 
-func NewGRPCServer(cfg *Config) (*grpc.Server, error) {
-	gsrv := grpc.NewServer()
+func NewGRPCServer(cfg *Config, opts ...grpc.ServerOption) (*grpc.Server, error) {
+	gsrv := grpc.NewServer(opts...)
 	srv, err := newGrpcServer(cfg)
 	if err != nil {
 		return nil, err
