@@ -3,8 +3,9 @@ package server
 import (
 	"context"
 
+	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	gauth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	api "github.com/izaakdale/service-log/api/v1"
-	"github.com/izaakdale/service-log/internal/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -13,8 +14,8 @@ import (
 )
 
 type Config struct {
-	CommitLog CommitLog
-	Auth      auth.Authorizer
+	CommitLog  CommitLog
+	Authorizer Authorizer
 }
 
 const (
@@ -26,6 +27,20 @@ const (
 var _ api.LogServer = (*grpcServer)(nil)
 
 func NewGRPCServer(cfg *Config, opts ...grpc.ServerOption) (*grpc.Server, error) {
+
+	opts = append(opts,
+		grpc.StreamInterceptor(
+			middleware.ChainStreamServer(
+				gauth.StreamServerInterceptor(authenticate),
+			),
+		),
+		grpc.UnaryInterceptor(
+			middleware.ChainUnaryServer(
+				gauth.UnaryServerInterceptor(authenticate),
+			),
+		),
+	)
+
 	gsrv := grpc.NewServer(opts...)
 	srv, err := newGrpcServer(cfg)
 	if err != nil {

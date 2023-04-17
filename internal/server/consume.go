@@ -7,7 +7,7 @@ import (
 )
 
 func (s *grpcServer) Consume(ctx context.Context, req *api.ConsumeRequest) (*api.ConsumeResponse, error) {
-	if err := s.Auth.Authorize(subject(ctx), objectWildcard, consumeAction); err != nil {
+	if err := s.Authorizer.Authorize(subject(ctx), objectWildcard, consumeAction); err != nil {
 		return nil, err
 	}
 	rec, err := s.CommitLog.Read(req.Offset)

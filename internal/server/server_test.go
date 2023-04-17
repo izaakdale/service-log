@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	api "github.com/izaakdale/service-log/api/v1"
+	"github.com/izaakdale/service-log/internal/auth"
 	"github.com/izaakdale/service-log/internal/config"
 	"github.com/izaakdale/service-log/internal/log"
 	"github.com/stretchr/testify/require"
@@ -58,9 +59,12 @@ func setupTest(t *testing.T, fn func(*Config)) (rootClient, nobodyClient api.Log
 	clog, err := log.New(dir, log.Config{})
 	require.NoError(t, err)
 
+	authorizer := auth.New(config.ACLModelFile, config.ACLPolicyFile)
 	cfg = &Config{
-		CommitLog: clog,
+		CommitLog:  clog,
+		Authorizer: authorizer,
 	}
+
 	if fn != nil {
 		fn(cfg)
 	}

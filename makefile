@@ -49,4 +49,4 @@ gencert:
 	-cn="nobody" \
 	test/client-csr.json | cfssljson -bare nobody-client
 	mv *.pem *csr ${CONFIG_PATH}
-	cp model.conf policy.csv ${CONFIG_PATH}
+	cp test/model.conf test/policy.csv ${CONFIG_PATH}

@@ -7,7 +7,7 @@ import (
 )
 
 func (s *grpcServer) Produce(ctx context.Context, req *api.ProduceRequest) (*api.ProduceResponse, error) {
-	if err := s.Auth.Authorize(subject(ctx), objectWildcard, produceAction); err != nil {
+	if err := s.Authorizer.Authorize(subject(ctx), objectWildcard, produceAction); err != nil {
 		return nil, err
 	}
 	offset, err := s.CommitLog.Append(req.Record)
