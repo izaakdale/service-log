@@ -78,14 +78,14 @@ func (a *Agent) setupLogger() error {
 
 func (a *Agent) setupLog() error {
 	var err error
-	a.log, err = log.New(a.DataDir, a.log.Config)
+	a.log, err = log.New(a.DataDir, log.Config{})
 	return err
 }
 
 func (a *Agent) setupServer() error {
 	authorizor := auth.New(a.Config.ACLModelFile, a.Config.ACLPolicyFile)
 
-	serverCfg := server.Config{
+	serverCfg := &server.Config{
 		Authorizer: authorizor,
 		CommitLog:  a.log,
 	}
@@ -93,11 +93,11 @@ func (a *Agent) setupServer() error {
 	var opts []grpc.ServerOption
 	if a.Config.ServerTLSConfig != nil {
 		creds := credentials.NewTLS(a.ServerTLSConfig)
-		opts = append(opts, creds)
+		opts = append(opts, grpc.Creds(creds))
 	}
 
 	var err error
-	a.server, err = server.NewGRPCServer(&serverCfg, opts...)
+	a.server, err = server.NewGRPCServer(serverCfg, opts...)
 	if err != nil {
 		return err
 	}
