@@ -3,7 +3,6 @@ package log
 import (
 	"bytes"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -16,6 +15,8 @@ import (
 	api "github.com/izaakdale/service-log/api/v1"
 	"google.golang.org/protobuf/proto"
 )
+
+// END: stream_layer_listener
 
 type DistributedLog struct {
 	config Config
@@ -90,7 +91,7 @@ func (l *DistributedLog) setupRaft(dataDir string) error {
 		config.HeartbeatTimeout = l.config.Raft.HeartbeatTimeout
 	}
 	if l.config.Raft.ElectionTimeout != 0 {
-		config.HeartbeatTimeout = l.config.Raft.ElectionTimeout
+		config.ElectionTimeout = l.config.Raft.ElectionTimeout
 	}
 	if l.config.Raft.LeaderLeaseTimeout != 0 {
 		config.LeaderLeaseTimeout = l.config.Raft.LeaderLeaseTimeout
@@ -110,15 +111,15 @@ func (l *DistributedLog) setupRaft(dataDir string) error {
 	if err != nil {
 		return err
 	}
-	hasState, err := raft.HasExistingState(
-		logStore,
-		stableStore,
-		snapshotStore,
-	)
-	if err != nil {
-		return err
-	}
-	if l.config.Raft.Bootstrap && !hasState {
+	// hasState, err := raft.HasExistingState(
+	// 	logStore,
+	// 	stableStore,
+	// 	snapshotStore,
+	// )
+	// if err != nil {
+	// 	return err
+	// }
+	if l.config.Raft.Bootstrap { // && !hasState {
 		config := raft.Configuration{
 			Servers: []raft.Server{
 				{
@@ -127,9 +128,9 @@ func (l *DistributedLog) setupRaft(dataDir string) error {
 				},
 			},
 		}
-		return l.raft.BootstrapCluster(config).Error()
+		err = l.raft.BootstrapCluster(config).Error()
 	}
-	return nil
+	return err
 }
 
 func (l *DistributedLog) Append(record *api.Record) (uint64, error) {
@@ -236,7 +237,7 @@ type fsm struct {
 
 type RequestType uint8
 
-const AppendRequestType = 0
+const AppendRequestType RequestType = 0
 
 func (f *fsm) Apply(record *raft.Log) any {
 	buf := record.Data
@@ -296,9 +297,17 @@ func (f *fsm) Restore(rc io.ReadCloser) error {
 		}
 
 		record := &api.Record{}
-		if err = proto.Unmarshal(b, record); err != nil {
+		if err = proto.Unmarshal(buf.Bytes(), record); err != nil {
 			return err
 		}
+
+		if i == 0 {
+			f.log.Config.Segment.InitialOffset = record.Offset
+			if err := f.log.Reset(); err != nil {
+				return err
+			}
+		}
+
 		if _, err = f.log.Append(record); err != nil {
 			return err
 		}
@@ -404,14 +413,15 @@ func (s *StreamLayer) Accept() (net.Conn, error) {
 		return nil, err
 	}
 	b := make([]byte, 1)
+	_, err = conn.Read(b)
 	if err != nil {
 		return nil, err
 	}
 	if bytes.Compare([]byte{byte(RaftRPC)}, b) != 0 {
-		return nil, errors.New("not a raft rpc")
+		return nil, fmt.Errorf("not a raft rpc")
 	}
 	if s.serverTLSConfig != nil {
-		conn = tls.Client(conn, s.serverTLSConfig)
+		conn = tls.Server(conn, s.serverTLSConfig)
 	}
 	return conn, nil
 }
