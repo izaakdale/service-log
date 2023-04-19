@@ -48,7 +48,7 @@ func TestAgent(t *testing.T) {
 
 		var startJoinAddrs []string
 		if i != 0 {
-			startJoinAddrs = append(startJoinAddrs, agents[0].BindAddr)
+			startJoinAddrs = append(startJoinAddrs, agents[0].Config.BindAddr)
 		}
 
 		agent, err := agent.New(agent.Config{
@@ -92,7 +92,8 @@ func TestAgent(t *testing.T) {
 			Offset: produceResponse.Offset,
 		},
 	)
-	require.Equal(t, consumeResponse.Record, []byte("testingtesting"))
+	require.NoError(t, err)
+	require.Equal(t, consumeResponse.Record.Value, []byte("testingtesting"))
 
 	time.Sleep(3 * time.Second)
 
@@ -105,8 +106,7 @@ func TestAgent(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-
-	require.Equal(t, consumeResponse.Record, []byte("testingtesting"))
+	require.Equal(t, consumeResponse.Record.Value, []byte("testingtesting"))
 }
 
 func client(t *testing.T, a *agent.Agent, cfg *tls.Config) api.LogClient {

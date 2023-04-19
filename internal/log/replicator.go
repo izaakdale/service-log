@@ -55,6 +55,7 @@ func (r *Replicator) replicate(addr string, leave chan struct{}) {
 	})
 	if err != nil {
 		r.logError(err, "failed to consume", addr)
+		return
 	}
 
 	records := make(chan *api.Record)
@@ -90,7 +91,7 @@ func (r *Replicator) Leave(name string) error {
 	defer r.mu.Unlock()
 	r.init()
 
-	if _, ok := r.servers[name]; ok {
+	if _, ok := r.servers[name]; !ok {
 		return nil
 	}
 	close(r.servers[name])

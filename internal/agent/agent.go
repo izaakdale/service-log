@@ -78,21 +78,26 @@ func (a *Agent) setupLogger() error {
 
 func (a *Agent) setupLog() error {
 	var err error
-	a.log, err = log.New(a.DataDir, log.Config{})
+	a.log, err = log.New(
+		a.Config.DataDir,
+		log.Config{},
+	)
 	return err
 }
 
 func (a *Agent) setupServer() error {
-	authorizor := auth.New(a.Config.ACLModelFile, a.Config.ACLPolicyFile)
-
+	authorizer := auth.New(
+		a.Config.ACLModelFile,
+		a.Config.ACLPolicyFile,
+	)
 	serverCfg := &server.Config{
-		Authorizer: authorizor,
 		CommitLog:  a.log,
+		Authorizer: authorizer,
 	}
 
 	var opts []grpc.ServerOption
 	if a.Config.ServerTLSConfig != nil {
-		creds := credentials.NewTLS(a.ServerTLSConfig)
+		creds := credentials.NewTLS(a.Config.ServerTLSConfig)
 		opts = append(opts, grpc.Creds(creds))
 	}
 
@@ -126,10 +131,10 @@ func (a *Agent) setupMembership() error {
 	}
 	var opts []grpc.DialOption
 	if a.Config.PeerTLSConfig != nil {
-		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(a.PeerTLSConfig)))
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(a.Config.PeerTLSConfig)))
 	}
 
-	conn, err := grpc.Dial(rpcAddr)
+	conn, err := grpc.Dial(rpcAddr, opts...)
 	if err != nil {
 		return err
 	}

@@ -54,7 +54,7 @@ func (m *Membership) setupSerf() (err error) {
 	m.events = make(chan serf.Event)
 	config.EventCh = m.events
 	config.Tags = m.Tags
-	config.NodeName = m.NodeName
+	config.NodeName = m.Config.NodeName
 	m.serf, err = serf.Create(config)
 	if err != nil {
 		return err
