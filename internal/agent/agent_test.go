@@ -81,7 +81,7 @@ func TestAgent(t *testing.T) {
 		context.Background(),
 		&api.ProduceRequest{
 			Record: &api.Record{
-				Value: []byte("testingtesting"),
+				Value: []byte("x"),
 			},
 		},
 	)
@@ -93,7 +93,7 @@ func TestAgent(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	require.Equal(t, consumeResponse.Record.Value, []byte("testingtesting"))
+	require.Equal(t, consumeResponse.Record.Value, []byte("x"))
 
 	time.Sleep(3 * time.Second)
 
@@ -106,7 +106,7 @@ func TestAgent(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	require.Equal(t, consumeResponse.Record.Value, []byte("testingtesting"))
+	require.Equal(t, consumeResponse.Record.Value, []byte("x"))
 }
 
 func client(t *testing.T, a *agent.Agent, cfg *tls.Config) api.LogClient {
