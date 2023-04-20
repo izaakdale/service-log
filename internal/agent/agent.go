@@ -20,7 +20,7 @@ import (
 )
 
 type Agent struct {
-	Config
+	Config Config
 
 	mux        cmux.CMux
 	log        *log.DistributedLog
@@ -94,18 +94,18 @@ func (a *Agent) setupLog() error {
 	})
 
 	logConf := log.Config{}
-	logConf.Raft.StreamLayer = log.NewStreamLayer(raftLn, a.ServerTLSConfig, a.PeerTLSConfig)
+	logConf.Raft.StreamLayer = log.NewStreamLayer(raftLn, a.Config.ServerTLSConfig, a.Config.PeerTLSConfig)
 	logConf.Raft.LocalID = raft.ServerID(a.Config.NodeName)
 	logConf.Raft.Bootstrap = a.Config.Bootstrap
 	var err error
-	a.log, err = log.NewDistributedLog(a.DataDir, logConf)
+	a.log, err = log.NewDistributedLog(a.Config.DataDir, logConf)
 	if err != nil {
 		return err
 	}
 	if a.Config.Bootstrap {
-		err = a.log.WaitForLeader(3 * time.Second)
+		return a.log.WaitForLeader(3 * time.Second)
 	}
-	return err
+	return nil
 }
 
 func (a *Agent) setupServer() error {

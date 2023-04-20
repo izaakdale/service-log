@@ -61,6 +61,7 @@ func TestAgent(t *testing.T) {
 			ACLPolicyFile:   config.ACLPolicyFile,
 			ServerTLSConfig: serverTLSConfig,
 			PeerTLSConfig:   peerTLSConfig,
+			Bootstrap:       i == 0,
 		})
 		require.NoError(t, err)
 
@@ -114,7 +115,9 @@ func TestAgent(t *testing.T) {
 		},
 	)
 	require.Nil(t, consumeResponse)
-	require.ErrorIs(t, api.ErrOffsetOutOfRange{}, err)
+	got := grpc.Code(err)
+	want := grpc.Code(api.ErrOffsetOutOfRange{})
+	require.Equal(t, want, got)
 }
 
 func client(t *testing.T, a *agent.Agent, cfg *tls.Config) api.LogClient {
