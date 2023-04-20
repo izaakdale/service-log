@@ -229,6 +229,22 @@ func (l *DistributedLog) Close() error {
 	return l.log.Close()
 }
 
+func (l *DistributedLog) GetServers() ([]*api.Server, error) {
+	future := l.raft.GetConfiguration()
+	if err := future.Error(); err != nil {
+		return nil, err
+	}
+	var servers []*api.Server
+	for _, s := range future.Configuration().Servers {
+		servers = append(servers, &api.Server{
+			Id:       string(s.ID),
+			RpcAddr:  string(s.Address),
+			IsLeader: l.raft.Leader() == s.Address,
+		})
+	}
+	return servers, nil
+}
+
 var _ raft.FSM = (*fsm)(nil)
 
 type fsm struct {
