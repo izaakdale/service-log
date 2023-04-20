@@ -22,8 +22,8 @@ message ConsumeRequest {
 message ConsumeResponse {
     Record record = 1;
 }
-message GetServerRequest {}
-message GetServerResponse {
+message GetServersRequest {}
+message GetServersResponse {
     repeated Server servers = 1;
 }
 message Server {
@@ -37,5 +37,5 @@ service Log {
     rpc Consume(ConsumeRequest) returns (ConsumeResponse) {}
     rpc ConsumeStream(ConsumeRequest) returns (stream ConsumeResponse) {}
     rpc ProduceStream(stream ProduceRequest) returns (stream ProduceResponse) {}
-    rpc GetServers(GetServerRequest) returns (GetServerResponse) {}
+    rpc GetServers(GetServersRequest) returns (GetServersResponse) {}
 }
