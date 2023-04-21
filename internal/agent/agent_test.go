@@ -12,6 +12,7 @@ import (
 	api "github.com/izaakdale/service-log/api/v1"
 	"github.com/izaakdale/service-log/internal/agent"
 	"github.com/izaakdale/service-log/internal/config"
+	"github.com/izaakdale/service-log/internal/loadbalance"
 	"github.com/stretchr/testify/require"
 	"github.com/travisjeffery/go-dynaport"
 	"google.golang.org/grpc"
@@ -87,6 +88,7 @@ func TestAgent(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
+	time.Sleep(3 * time.Second)
 	consumeResponse, err := leaderClient.Consume(
 		context.Background(),
 		&api.ConsumeRequest{
@@ -95,8 +97,6 @@ func TestAgent(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.Equal(t, consumeResponse.Record.Value, []byte("x"))
-
-	time.Sleep(3 * time.Second)
 
 	followerClient := client(t, agents[1], peerTLSConfig)
 
@@ -125,7 +125,7 @@ func client(t *testing.T, a *agent.Agent, cfg *tls.Config) api.LogClient {
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(tlsCreds)}
 	rpcAddr, err := a.Config.RPCAddr()
 	require.NoError(t, err)
-	conn, err := grpc.Dial(rpcAddr, opts...)
+	conn, err := grpc.Dial(fmt.Sprintf("%s:///%s", loadbalance.Name, rpcAddr), opts...)
 	require.NoError(t, err)
 
 	client := api.NewLogClient(conn)
