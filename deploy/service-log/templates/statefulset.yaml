@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "service-log.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "service-log.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels: {{ include "service-log.selectorLabels" . | nindent 6 }}
+  serviceName: {{ include "service-log.fullname" . }}
+  replicas: {{ .Values.replicas }}
+  template:
+    metadata:
+      name: {{ include "service-log.fullname" . }}
+      labels: {{ include "service-log.labels" . | nindent 8 }}
+    spec:
+      initContainers:
+      - name: {{ include "service-log.fullname" . }}-config-init
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sh
+          - -c
+          - |-
+            ID=$(echo $HOSTNAME | rev | cut -d- -f1 | rev)
+            cat > /var/run/service-log/config.yaml <<EOD
+            data-dir: /var/run/service-log/data
+            rpc-port: {{.Values.rpcPort}}
+            bind-addr: "logger-service-log.{{.Release.Namespace}}.svc.cluster.local:{{.Values.serfPort}}"
+            bootstrap: $([$HOSTNAME = logger-service-log-0] && echo true || echo false)
+            $([$HOSTNAME != logger-service-log-0] && echo 'start-join-addrs: "logger-service-log.{{.Release.Namespace}}.svc.cluster.local:{{.Values.serfPort}}' )
+            EOD
+        volumeMounts:
+        - name: datadir
+          mountPath: /var/run/service-log
+      containers:
+      - name: {{ include "service-log.fullname" . }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: {{ .Values.rpcPort }}
+          name: rpc
+        - containerPort: {{ .Values.serfPort }}
+          name: serf
+        args:
+          - --config-file=/var/run/service-log/config.yaml
+        readinessProbe:
+          exec:
+            command: ["/bin/grpc_health_probe", "-addr=:{{ .Values.rpcPort }}"]
+          initialDelaySeconds: 10
+        livenessProbe:
+          exec:
+            command: ["/bin/grpc_health_probe", "-addr=:{{ .Values.rpcPort }}"]
+          initialDelaySeconds: 10
+        volumeMounts:
+        - name: datadir
+          mountPath: /var/run/service-log
+  volumeClaimTemplates:
+  - metadata:
+      name: datadir
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: {{ .Values.storage }}

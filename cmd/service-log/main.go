@@ -1,3 +1,4 @@
+// START: beginning
 package main
 
 import (
@@ -16,18 +17,26 @@ import (
 func main() {
 	cli := &cli{}
 
-	cmd := cobra.Command{
-		Use:     "service-log",
+	// START_HIGHLIGHT
+	cmd := &cobra.Command{
+		Use:     "proglog",
 		PreRunE: cli.setupConfig,
 		RunE:    cli.run,
 	}
-	if err := setupFlags(&cmd); err != nil {
+	// END_HIGHLIGHT
+
+	if err := setupFlags(cmd); err != nil {
 		log.Fatal(err)
 	}
+
 	if err := cmd.Execute(); err != nil {
 		log.Fatal(err)
 	}
 }
+
+// END: beginning
+
+// START: types
 
 type cli struct {
 	cfg cfg
@@ -39,35 +48,56 @@ type cfg struct {
 	PeerTLSConfig   config.TLSConfig
 }
 
+// END: types
+
+// START: flags
+
 func setupFlags(cmd *cobra.Command) error {
 	hostname, err := os.Hostname()
 	if err != nil {
 		log.Fatal(err)
 	}
-	cmd.Flags().String("config-file", "", "path to config file")
-	dataDir := path.Join(os.TempDir(), "service-log")
-	cmd.Flags().String("data-dir", dataDir, "directory to store log and raft data")
 
-	cmd.Flags().String("node-name", hostname, "unique server id")
-	cmd.Flags().String("bind-addr", "127.0.0.1:8401", "address to bind serf")
-	cmd.Flags().Int("rpc-port", 8400, "port for rpc client (and raft) connections")
-	cmd.Flags().StringSlice("start-join-addr", nil, "serf addresses to join")
-	cmd.Flags().Bool("bootstrap", false, "bootstrap the cluster")
+	cmd.Flags().String("config-file", "", "Path to config file.")
 
-	cmd.Flags().String("acl-model-file", "", "path to ACL model.")
-	cmd.Flags().String("acl-policy-file", "", "path to ACL policy.")
+	dataDir := path.Join(os.TempDir(), "proglog")
+	cmd.Flags().String("data-dir",
+		dataDir,
+		"Directory to store log and Raft data.")
+	cmd.Flags().String("node-name", hostname, "Unique server ID.")
 
-	cmd.Flags().String("server-tls-cert-file", "", "path to server tls cert.")
-	cmd.Flags().String("server-tls-key-file", "", "path to server tls key.")
-	cmd.Flags().String("server-tls-ca-file", "", "Path to server certificate authority.")
+	cmd.Flags().String("bind-addr",
+		"127.0.0.1:8401",
+		"Address to bind Serf on.")
+	cmd.Flags().Int("rpc-port",
+		8400,
+		"Port for RPC clients (and Raft) connections.")
+	cmd.Flags().StringSlice("start-join-addrs",
+		nil,
+		"Serf addresses to join.")
+	cmd.Flags().Bool("bootstrap", false, "Bootstrap the cluster.")
 
-	cmd.Flags().String("peer-tls-cert-file", "", "path to peer tls cert.")
-	cmd.Flags().String("peer-tls-key-file", "", "path to peer tls key.")
-	cmd.Flags().String("peer-tls-ca-file", "", "Path to peer certificate authority.")
+	cmd.Flags().String("acl-model-file", "", "Path to ACL model.")
+	cmd.Flags().String("acl-policy-file", "", "Path to ACL policy.")
+
+	cmd.Flags().String("server-tls-cert-file", "", "Path to server tls cert.")
+	cmd.Flags().String("server-tls-key-file", "", "Path to server tls key.")
+	cmd.Flags().String("server-tls-ca-file",
+		"",
+		"Path to server certificate authority.")
+
+	cmd.Flags().String("peer-tls-cert-file", "", "Path to peer tls cert.")
+	cmd.Flags().String("peer-tls-key-file", "", "Path to peer tls key.")
+	cmd.Flags().String("peer-tls-ca-file",
+		"",
+		"Path to peer certificate authority.")
 
 	return viper.BindPFlags(cmd.Flags())
 }
 
+// END: flags
+
+// START: setup_cfg
 func (c *cli) setupConfig(cmd *cobra.Command, args []string) error {
 	var err error
 
@@ -77,7 +107,8 @@ func (c *cli) setupConfig(cmd *cobra.Command, args []string) error {
 	}
 	viper.SetConfigFile(configFile)
 
-	if err := viper.ReadInConfig(); err != nil {
+	if err = viper.ReadInConfig(); err != nil {
+		// it's ok if config file doesn't exist
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
 			return err
 		}
@@ -98,23 +129,33 @@ func (c *cli) setupConfig(cmd *cobra.Command, args []string) error {
 	c.cfg.PeerTLSConfig.KeyFile = viper.GetString("peer-tls-key-file")
 	c.cfg.PeerTLSConfig.CAFile = viper.GetString("peer-tls-ca-file")
 
-	if c.cfg.ServerTLSConfig.CertFile != "" && c.cfg.ServerTLSConfig.KeyFile != "" {
+	if c.cfg.ServerTLSConfig.CertFile != "" &&
+		c.cfg.ServerTLSConfig.KeyFile != "" {
 		c.cfg.ServerTLSConfig.Server = true
-		c.cfg.Config.ServerTLSConfig, err = config.SetupTLSConfig(c.cfg.ServerTLSConfig)
+		c.cfg.Config.ServerTLSConfig, err = config.SetupTLSConfig(
+			c.cfg.ServerTLSConfig,
+		)
 		if err != nil {
 			return err
 		}
 	}
-	if c.cfg.PeerTLSConfig.CertFile != "" && c.cfg.PeerTLSConfig.KeyFile != "" {
-		c.cfg.ServerTLSConfig.Server = false
-		c.cfg.Config.PeerTLSConfig, err = config.SetupTLSConfig(c.cfg.PeerTLSConfig)
+
+	if c.cfg.PeerTLSConfig.CertFile != "" &&
+		c.cfg.PeerTLSConfig.KeyFile != "" {
+		c.cfg.Config.PeerTLSConfig, err = config.SetupTLSConfig(
+			c.cfg.PeerTLSConfig,
+		)
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
+// END: setup_cfg
+
+// START: run
 func (c *cli) run(cmd *cobra.Command, args []string) error {
 	var err error
 	agent, err := agent.New(c.cfg.Config)
@@ -126,3 +167,5 @@ func (c *cli) run(cmd *cobra.Command, args []string) error {
 	<-sigc
 	return agent.Shutdown()
 }
+
+// END: run

@@ -15,6 +15,7 @@ import (
 	"github.com/izaakdale/service-log/internal/log"
 	"github.com/izaakdale/service-log/internal/server"
 	"github.com/soheilhy/cmux"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -60,6 +61,7 @@ func New(cfg Config) (*Agent, error) {
 		shutdowns: make(chan struct{}),
 	}
 	setup := []func() error{
+		a.setupLogger,
 		a.setupMux,
 		a.setupLog,
 		a.setupServer,
@@ -72,6 +74,15 @@ func New(cfg Config) (*Agent, error) {
 	}
 	go a.serve()
 	return a, nil
+}
+
+func (a *Agent) setupLogger() error {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		return err
+	}
+	zap.ReplaceGlobals(logger)
+	return nil
 }
 
 func (a *Agent) setupMux() error {
