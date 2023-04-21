@@ -1,0 +1,12 @@
+=== RUN   TestAgent
+2023-04-21T17:16:02.714+0100 [INFO]  raft: initial configuration: index=0 servers=[]
+2023-04-21T17:16:02.714+0100 [INFO]  raft: entering follower state: follower="Node at [::]:25362 [Follower]" leader-address= leader-id=
+    agent_test.go:67: 
+        	Error Trace:	/home/izaakdale/go/src/github.com/izaakdale/service-log/internal/agent/agent_test.go:67
+        	Error:      	Received unexpected error:
+        	            	empty address in configuration: {Voter 0 }
+        	Test:       	TestAgent
+--- FAIL: TestAgent (0.02s)
+FAIL
+FAIL	github.com/izaakdale/service-log/internal/agent	0.031s
+FAIL

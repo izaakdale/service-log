@@ -75,7 +75,11 @@ func New(cfg Config) (*Agent, error) {
 }
 
 func (a *Agent) setupMux() error {
-	rpcAddr := fmt.Sprintf(":%d", a.Config.RPCPort)
+	addr, err := net.ResolveTCPAddr("tcp", a.Config.BindAddr)
+	if err != nil {
+		return err
+	}
+	rpcAddr := fmt.Sprintf("%s:%d", addr.IP.String(), a.Config.RPCPort)
 	ln, err := net.Listen("tcp", rpcAddr)
 	if err != nil {
 		return err
@@ -95,9 +99,15 @@ func (a *Agent) setupLog() error {
 
 	logConf := log.Config{}
 	logConf.Raft.StreamLayer = log.NewStreamLayer(raftLn, a.Config.ServerTLSConfig, a.Config.PeerTLSConfig)
+
+	rpcAddr, err := a.Config.RPCAddr()
+	if err != nil {
+		return err
+	}
+	logConf.Raft.BindAddr = rpcAddr
+
 	logConf.Raft.LocalID = raft.ServerID(a.Config.NodeName)
 	logConf.Raft.Bootstrap = a.Config.Bootstrap
-	var err error
 	a.log, err = log.NewDistributedLog(a.Config.DataDir, logConf)
 	if err != nil {
 		return err
