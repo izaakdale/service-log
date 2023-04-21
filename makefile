@@ -50,3 +50,7 @@ gencert:
 	test/client-csr.json | cfssljson -bare nobody-client
 	mv *.pem *csr ${CONFIG_PATH}
 	cp test/model.conf test/policy.csv ${CONFIG_PATH}
+
+TAG ?= 0.0.1
+docker-build:
+	docker build -t izaakdale/service-log:$(TAG) .
